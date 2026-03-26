@@ -127,7 +127,8 @@ body{
                 trash: <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />,
                 x: <path d="M18 6 6 18M6 6l12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />,
                 chevron: <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />,
-                enter: <path d="M9 10l-5 5 5 5M4 15h11a5 5 0 0 0 5-5V7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                enter: <path d="M9 10l-5 5 5 5M4 15h11a5 5 0 0 0 5-5V7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />,
+                list: <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
             };
             return (
                 <svg width={size} height={size} viewBox="0 0 24 24" className={className} xmlns="http://www.w3.org/2000/svg">
@@ -140,7 +141,6 @@ body{
             const [activeTab, setActiveTab] = useState('material');
             const [activeField, setActiveField] = useState('totalDim');
             const [isNewEntry, setIsNewEntry] = useState(true);
-            const [isPendingClear, setIsPendingClear] = useState(false);
 
             const [currentProductName, setCurrentProductName] = useState('');
             const [stdLength, setStdLength] = useState('');
@@ -252,7 +252,7 @@ body{
                         setStdLength('');
                         setOverlap('');
                         setCurrentProductName('');
-                    } else {
+                    } else if (activeTab === 'slope') {
                         setY(''); setX(''); setC(''); setA(''); setB('');
                     }
                     setIsNewEntry(true);
@@ -315,7 +315,7 @@ body{
                             const nextIdx = (fields.indexOf(activeField) + 1) % fields.length;
                             setActiveField(fields[nextIdx]);
                         }
-                    } else {
+                    } else if (activeTab === 'slope') {
                         const fields = ['y', 'x', 'c'];
                         const currentIdx = fields.indexOf(activeField);
                         if (currentIdx !== -1 && currentIdx < fields.length - 1) {
@@ -378,7 +378,6 @@ body{
                 setHistory([]);
                 localStorage.removeItem('trim_calc_history_v15');
                 setIsClearModalOpen(false);
-                setIsPendingClear(false);
             };
 
             const updateFromY = (v) => {
@@ -440,6 +439,7 @@ body{
                         </div>
                         <nav className="flex bg-zinc-900 rounded-2xl p-1 shadow-inner">
                             <button onClick={() => setActiveTab('material')} className={`flex-1 py-1 rounded-xl text-[14px] font-black transition-all btn-3d ${activeTab === 'material' ? 'btn-3d-tab-active shadow-lg' : 'text-zinc-500'}`}>材料</button>
+                            <button onClick={() => setActiveTab('tally')} className={`flex-1 py-1 rounded-xl text-[14px] font-black transition-all btn-3d ${activeTab === 'tally' ? 'btn-3d-tab-active shadow-lg' : 'text-zinc-500'}`}>集計</button>
                             <button onClick={() => setActiveTab('slope')} className={`flex-1 py-1 rounded-xl text-[14px] font-black transition-all btn-3d ${activeTab === 'slope' ? 'btn-3d-tab-active shadow-lg' : 'text-zinc-500'}`}>勾配</button>
                         </nav>
                     </header>
@@ -544,6 +544,12 @@ body{
                                 </div>
                                 <div className="bg-zinc-900 py-2 px-3 rounded-2xl border-2 border-orange-500 shadow-md">
                                     <div className="flex flex-col gap-1 text-left">
+                                        {history.length > 0 && (
+                                            <div className="flex items-baseline justify-between px-1 border-b border-zinc-800 pb-1 mb-1">
+                                                <span className="text-orange-500 text-[12px] font-black uppercase tracking-tighter">最新品名:</span>
+                                                <span className="text-zinc-100 text-[14px] font-black truncate max-w-[180px]">{history[0].name}</span>
+                                            </div>
+                                        )}
                                         <div className="flex items-baseline justify-between px-1">
                                             <span className="text-zinc-400 text-[14px] font-bold uppercase tracking-tighter">総距離:</span>
                                             <span className="text-zinc-200 text-[14px] font-bold">{format(history.reduce((a,c)=>a+toNum(c.total),0))} mm</span>
@@ -563,7 +569,7 @@ body{
                                         </div>
                                     </div>
                                 </div>
-                                <div className="space-y-1.5">
+                                <div className="space-y-1.5 overflow-y-auto max-h-[30vh]">
                                     {history.map(item => (
                                         <div key={item.id} className="bg-zinc-900 border border-zinc-800 rounded-xl flex items-center shadow-sm p-2 overflow-hidden">
                                             <div className="flex-1 flex flex-col gap-0.5 min-w-0">
@@ -582,24 +588,35 @@ body{
                                     ))}
                                 </div>
                             </section>
-
-                            <section className="space-y-2 pt-3 border-t border-zinc-800 text-left">
-                                <h3 className="text-[14px] font-black text-orange-500 ml-1 uppercase block">種類別 集計</h3>
-                                <div className="space-y-2">
-                                    {savedTallies.map(t => (
-                                        <div key={t.id} className="bg-zinc-900 rounded-xl border border-orange-500 flex items-stretch shadow-md animate-fade-in overflow-hidden">
-                                            <div className="flex-1 py-2 px-3 flex flex-col gap-1.5 text-left">
-                                                <div className="flex flex-col gap-1 text-left">
+                        </div>
+                    ) : activeTab === 'tally' ? (
+                        <div className="flex flex-col animate-fade-in space-y-4">
+                            <div className="flex items-center gap-2 ml-1">
+                                <Icon name="list" size={20} className="text-orange-500" />
+                                <h3 className="text-[15px] font-black text-zinc-100 uppercase tracking-widest">種類別 集計</h3>
+                            </div>
+                            
+                            <div className="space-y-3">
+                                {savedTallies.length === 0 ? (
+                                    <div className="bg-zinc-900/50 border border-dashed border-zinc-800 rounded-3xl py-12 flex flex-col items-center justify-center text-center">
+                                        <Icon name="save" size={40} className="text-zinc-700 mb-3" />
+                                        <p className="text-zinc-500 text-sm font-bold">データがありません<br/><span className="text-xs font-normal">「材料」タブの集計保存から追加できます</span></p>
+                                    </div>
+                                ) : (
+                                    savedTallies.map(t => (
+                                        <div key={t.id} className="bg-zinc-900 rounded-2xl border border-orange-500 flex items-stretch shadow-md animate-fade-in overflow-hidden">
+                                            <div className="flex-1 py-3 px-4 flex flex-col gap-2 text-left">
+                                                <div className="flex flex-col gap-1.5 text-left bg-zinc-950/50 p-2 rounded-xl border border-zinc-800/50">
                                                     <div className="flex items-baseline justify-between px-1">
-                                                        <span className="text-zinc-400 text-xs font-bold uppercase tracking-tighter">距離:</span>
-                                                        <span className="text-zinc-200 text-xs font-bold">{format(t.totalDistance)} mm</span>
+                                                        <span className="text-zinc-400 text-xs font-bold uppercase tracking-tighter">総距離:</span>
+                                                        <span className="text-zinc-200 text-sm font-mono font-bold">{format(t.totalDistance)} mm</span>
                                                     </div>
                                                     <div className="flex items-center justify-between px-1">
                                                         <div className="flex items-baseline gap-2">
                                                             <span className="text-zinc-400 text-xs font-bold uppercase tracking-tighter">本数:</span>
                                                             <div className="flex items-baseline gap-1">
                                                                 <span className="text-xl font-mono font-black text-green-500 leading-none">{t.pieces}</span>
-                                                                <span className="text-xs font-bold text-zinc-300">本</span>
+                                                                <span className="text-[10px] font-bold text-zinc-400">本</span>
                                                             </div>
                                                         </div>
                                                         <div className="flex items-baseline gap-1.5">
@@ -608,27 +625,28 @@ body{
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <input 
-                                                    type="text" 
-                                                    value={t.name} 
-                                                    onFocus={handleFocus} 
-                                                    onChange={(e) => updateTallyName(t.id, e.target.value)} 
-                                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-1.5 px-2 text-sm text-zinc-200 outline-none font-bold focus:border-orange-500 shadow-inner" 
-                                                    placeholder="種類名を入力" 
-                                                />
+                                                <div className="relative mt-1">
+                                                    <input 
+                                                        type="text" 
+                                                        value={t.name} 
+                                                        onFocus={handleFocus} 
+                                                        onChange={(e) => updateTallyName(t.id, e.target.value)} 
+                                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-3 text-[15px] text-zinc-100 outline-none font-bold focus:border-orange-500 shadow-inner" 
+                                                        placeholder="種類名を入力" 
+                                                    />
+                                                </div>
                                             </div>
                                             <button onClick={() => {
                                                 const updated = savedTallies.filter(st => st.id !== t.id);
                                                 setSavedTallies(updated);
                                                 localStorage.setItem('trim_calc_tallies_v15', JSON.stringify(updated));
-                                            }} className="w-12 shrink-0 bg-zinc-900/50 hover:bg-zinc-800 text-zinc-300 active:text-red-500 flex items-center justify-center border-l border-zinc-800"><Icon name="trash" size={20} /></button>
+                                            }} className="w-14 shrink-0 bg-zinc-900/50 hover:bg-zinc-800 text-zinc-400 active:text-red-500 flex items-center justify-center border-l border-zinc-800 transition-colors"><Icon name="trash" size={20} /></button>
                                         </div>
-                                    ))}
-                                </div>
-                            </section>
+                                    ))
+                                )}
+                            </div>
                         </div>
                     ) : (
-                        /* 勾配計算画面 */
                         <div className="flex flex-col gap-3 animate-fade-in text-left">
                             <div className="bg-zinc-900 rounded-2xl overflow-visible border-2 border-zinc-800 shadow-xl text-left">
                                 <div className="flex border-b border-zinc-800 relative">
