@@ -1,25 +1,20 @@
-# 役物材料 計算 完全版
+役物材料 計算 / キャッシュ事故ゼロ構成
 
-構成は他の完全版と同じです。
-
-## 配置するファイル
+同梱ファイル
 - index.html
 - manifest.json
 - sw.js
 - icon-180.png
 - icon-192.png
 - icon-512.png
-- icon-1024.png
-- splash-1170x2532.png
-- README.txt
 
-## 公開手順
-1. ZIPを解凍
-2. 中身をGitHubリポジトリ直下にアップロード
-3. Settings > Pages > Deploy from branch > main / root
-4. Android Chromeで公開URLを開く
-5. 「アプリをインストール」で全画面起動
+削除したもの
+- icon-1024.png（PWA運用では不要）
+- splash-1170x2532.png（この構成では未使用）
+- README.txt（旧説明用）
 
-## 注意
-- 旧service workerやmanifestが残っていると更新が反映されにくいです
-- 反映しない場合はサイトデータ削除後に再読み込みしてください
+重要
+- 更新時は、このZIPの中身をGitHub Pagesの同じ場所に上書きしてください。
+- 旧キャッシュを確実に切り替えるため、manifest / service worker に版番号を入れてあります。
+- この index.html は CDN の React / Tailwind / Babel を使っています。したがって「完全オフライン動作」はしません。
+  ただし、キャッシュ更新事故を起こしにくい構成にはしてあります。

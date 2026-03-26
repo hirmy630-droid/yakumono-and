@@ -86,7 +86,8 @@
         }
     </style>
 
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.json?v=20260326-1">
+<link rel="apple-touch-icon" href="icon-180.png?v=20260326-1">
 <meta name="theme-color" content="#000000">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -117,6 +118,7 @@ body{
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen">
     <div id="root"></div>
+    <button id="installBtn" aria-label="インストール">インストール</button>
 
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
@@ -697,5 +699,68 @@ body{
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
+
+    <script>
+    (function () {
+      const APP_VERSION = '20260326-1';
+      const installBtn = document.getElementById('installBtn');
+      let deferredPrompt = null;
+
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async () => {
+          try {
+            const reg = await navigator.serviceWorker.register('./sw.js?v=' + APP_VERSION, { scope: './' });
+
+            if (navigator.serviceWorker.controller) {
+              reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                if (!newWorker) return;
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                  }
+                });
+              });
+
+              let refreshing = false;
+              navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing) return;
+                refreshing = true;
+                window.location.reload();
+              });
+            }
+          } catch (err) {
+            console.error('Service Worker registration failed:', err);
+          }
+        });
+      }
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (installBtn) installBtn.style.display = 'block';
+      });
+
+      if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+          if (!deferredPrompt) return;
+          deferredPrompt.prompt();
+          try {
+            await deferredPrompt.userChoice;
+          } catch (e) {
+            console.error(e);
+          }
+          deferredPrompt = null;
+          installBtn.style.display = 'none';
+        });
+      }
+
+      window.addEventListener('appinstalled', () => {
+        deferredPrompt = null;
+        if (installBtn) installBtn.style.display = 'none';
+      });
+    })();
+    </script>
+    
 </body>
 </html>
