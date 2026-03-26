@@ -1,13 +1,11 @@
-const CACHE_NAME = 'yakumono-complete-v2';
+const CACHE_NAME = 'yakumono-complete-v3';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
   './icon-180.png',
   './icon-192.png',
-  './icon-512.png',
-  './icon-1024.png',
-  './splash-1170x2532.png'
+  './icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
