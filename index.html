@@ -17,7 +17,6 @@
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
         
-        /* 基本のプレースホルダー（グレー #71717a） */
         input::placeholder { 
             font-size: 14px !important; 
             font-weight: 400; 
@@ -25,7 +24,6 @@
             opacity: 1;
         }
 
-        /* ラベル代わりのシルバープレースホルダー（#c0c0c0） */
         .placeholder-silver::placeholder {
             color: #c0c0c0 !important;
         }
@@ -59,6 +57,12 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.2), inset 0 1px 4px rgba(0,0,0,0.3);
         }
 
+        .btn-3d-red {
+            background: linear-gradient(180deg, #ff3b30 0%, #d7261b 100%);
+            border: 1px solid #a31a12;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+
         .btn-3d-zinc { background: #3f3f46; border-bottom: 4px solid #18181b; }
         .btn-3d-tab-active { background: #52525b; border-bottom: 3px solid #18181b; color: #f97316; }
         
@@ -88,11 +92,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="役物材料 計算">
-<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-<link rel="apple-touch-startup-image" href="splash-1170x2532.png">
-<meta name="format-detection" content="telephone=no">
 <style>
 #installBtn{
   position:fixed;
@@ -115,12 +114,6 @@ body{
   padding-bottom: env(safe-area-inset-bottom);
 }
 </style>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
-}
-</script>
-
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen">
     <div id="root"></div>
@@ -239,6 +232,18 @@ if ('serviceWorker' in navigator) {
                 localStorage.setItem('trim_calc_history_v15', JSON.stringify(newHistory));
             };
 
+            const deleteHistoryItem = (id) => {
+                const newHistory = history.filter(item => item.id !== id);
+                setHistory(newHistory);
+                localStorage.setItem('trim_calc_history_v15', JSON.stringify(newHistory));
+            };
+
+            const updateTallyName = (id, newName) => {
+                const updated = savedTallies.map(t => t.id === id ? { ...t, name: newName } : t);
+                setSavedTallies(updated);
+                localStorage.setItem('trim_calc_tallies_v15', JSON.stringify(updated));
+            };
+
             const handleKeypad = (key) => {
                 if (key === 'AC') {
                     if (activeTab === 'material') {
@@ -355,7 +360,7 @@ if ('serviceWorker' in navigator) {
                 const totalRemainder = history.reduce((acc, cur) => acc + (toNum(cur.remainder) || 0), 0); 
                 const newTallies = [{
                     id: Date.now().toString(),
-                    name: currentProductName,
+                    name: currentProductName || '名称未設定',
                     pieces,
                     totalDistance,
                     totalRemainder,
@@ -363,7 +368,8 @@ if ('serviceWorker' in navigator) {
                 }, ...savedTallies];
                 setSavedTallies(newTallies);
                 localStorage.setItem('trim_calc_tallies_v15', JSON.stringify(newTallies));
-                setIsPendingClear(true);
+                setHistory([]);
+                localStorage.removeItem('trim_calc_history_v15');
                 setCurrentProductName('');
             };
 
@@ -400,24 +406,6 @@ if ('serviceWorker' in navigator) {
                 if (nC !== 0 && !isNaN(nY)) {
                     setA(Math.round((nY / 100) * nC).toString());
                     setB(Math.round(Math.sqrt(Math.pow((nY / 100) * nC, 2) + Math.pow(nC, 2))).toString());
-                }
-            };
-            const updateFromA = (v) => {
-                const cl = unformat(v); setA(cl); const nA = parseFloat(cl); const nC = toNum(c);
-                if (!isNaN(nA) && nC !== 0) {
-                    setB(Math.round(Math.sqrt(Math.pow(nA, 2) + Math.pow(nC, 2))).toString());
-                    const g = (nA / nC) * 100;
-                    setY(g.toFixed(2)); setX(((Math.atan(g / 100) * 180) / Math.PI).toFixed(2));
-                }
-            };
-            const updateFromB = (v) => {
-                const cl = unformat(v); setB(cl); const nB = parseFloat(cl); const nA = toNum(a);
-                if (!isNaN(nB) && !isNaN(nA) && nB >= nA && nB !== 0) {
-                    const nC = Math.sqrt(Math.pow(nB, 2) - Math.pow(nA, 2)); setC(Math.round(nC).toString());
-                    if (nC !== 0) {
-                        const g = (nA / nC) * 100;
-                        setY(g.toFixed(2)); setX(((Math.atan(g / 100) * 180) / Math.PI).toFixed(2));
-                    }
                 }
             };
 
@@ -592,7 +580,6 @@ if ('serviceWorker' in navigator) {
                                 <h3 className="text-[14px] font-black text-orange-500 ml-1 uppercase block">種類別 集計</h3>
                                 <div className="space-y-2">
                                     {savedTallies.map(t => (
-                                        /* 集計アイテムの枠線を border-2 から border (1px) に修正 */
                                         <div key={t.id} className="bg-zinc-900 rounded-xl border border-orange-500 flex items-stretch shadow-md animate-fade-in overflow-hidden">
                                             <div className="flex-1 py-2 px-3 flex flex-col gap-1.5 text-left">
                                                 <div className="flex flex-col gap-1 text-left">
@@ -614,7 +601,14 @@ if ('serviceWorker' in navigator) {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <input type="text" value={t.name} onFocus={handleFocus} onChange={(e) => updateTallyName(t.id, e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-1.5 px-2 text-sm text-zinc-200 outline-none font-bold focus:border-orange-500 shadow-inner" placeholder="種類名を入力" />
+                                                <input 
+                                                    type="text" 
+                                                    value={t.name} 
+                                                    onFocus={handleFocus} 
+                                                    onChange={(e) => updateTallyName(t.id, e.target.value)} 
+                                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-1.5 px-2 text-sm text-zinc-200 outline-none font-bold focus:border-orange-500 shadow-inner" 
+                                                    placeholder="種類名を入力" 
+                                                />
                                             </div>
                                             <button onClick={() => {
                                                 const updated = savedTallies.filter(st => st.id !== t.id);
@@ -673,8 +667,6 @@ if ('serviceWorker' in navigator) {
                             <div className="bg-zinc-900 rounded-2xl p-4 border border-zinc-700 shadow-2xl overflow-hidden mt-2">
                                 <div className="flex items-center justify-between mb-2 text-left">
                                     <div className="flex items-center gap-2 font-bold text-zinc-200 text-[14px] uppercase tracking-widest"><div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>プレビュー</div>
-                                    
-                                    {/* 勾配基準図 (右上の三角形) */}
                                     <svg width="70" height="45" viewBox="0 0 80 50" className="text-[#d4d4d8] overflow-visible">
                                         <path d="M 10 35 L 60 35 L 60 10 Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                                         <text x="35" y="48" fontSize="14" textAnchor="middle" fill="currentColor" fontWeight="bold">100</text>
@@ -705,33 +697,5 @@ if ('serviceWorker' in navigator) {
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
-
-<button id="installBtn" aria-label="このアプリをインストール">アプリをインストール</button>
-<script>
-(function() {
-  let deferredPrompt = null;
-  const btn = document.getElementById('installBtn');
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-
-  window.addEventListener('beforeinstallprompt', function(e) {
-    e.preventDefault();
-    deferredPrompt = e;
-    if (!isStandalone) btn.style.display = 'block';
-  });
-
-  btn.addEventListener('click', async function() {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    try { await deferredPrompt.userChoice; } catch (e) {}
-    deferredPrompt = null;
-    btn.style.display = 'none';
-  });
-
-  window.addEventListener('appinstalled', function() {
-    btn.style.display = 'none';
-  });
-})();
-</script>
-
 </body>
 </html>
