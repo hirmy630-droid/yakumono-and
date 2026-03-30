@@ -269,7 +269,9 @@ body{
                         addInput: setAddInput,
                         y: setY,
                         x: setX,
-                        c: setC
+                        c: setC,
+                        a: setA,
+                        b: setB
                     }[activeField];
                     if (setter) setter('');
                     setIsNewEntry(true);
@@ -285,11 +287,13 @@ body{
                         addInput: setAddInput,
                         y: updateFromY,
                         x: updateFromX,
-                        c: updateFromC
+                        c: updateFromC,
+                        a: updateFromA,
+                        b: updateFromB
                     }[activeField];
                     if (setter) {
-                        if (['y', 'x', 'c'].includes(activeField)) {
-                           const currentVal = activeField === 'y' ? y : activeField === 'x' ? x : c;
+                        if (['y', 'x', 'c', 'a', 'b'].includes(activeField)) {
+                           const currentVal = activeField === 'y' ? y : activeField === 'x' ? x : activeField === 'c' ? c : activeField === 'a' ? a : b;
                            const n = parseFloat(currentVal);
                            if (!isNaN(n)) setter((n * -1).toString());
                         } else {
@@ -317,7 +321,7 @@ body{
                             setActiveField(fields[nextIdx]);
                         }
                     } else if (activeTab === 'slope') {
-                        const fields = ['y', 'x', 'c'];
+                        const fields = ['y', 'x', 'c', 'a', 'b'];
                         const currentIdx = fields.indexOf(activeField);
                         if (currentIdx !== -1 && currentIdx < fields.length - 1) {
                             setActiveField(fields[currentIdx + 1]);
@@ -344,7 +348,7 @@ body{
                         return nextVal;
                     });
                 } else if (activeTab === 'slope') {
-                    let currentStr = (activeField === 'y' ? y : activeField === 'x' ? x : c).toString();
+                    let currentStr = (activeField === 'y' ? y : activeField === 'x' ? x : activeField === 'c' ? c : activeField === 'a' ? a : b).toString();
                     if (key === '00' && (isNewEntry || currentStr === '')) return;
                     if (key === '.' && !isNewEntry && currentStr.includes('.')) return;
                     let nextStr = isNewEntry ? (key === '.' ? '0.' : key.toString()) : currentStr + key;
@@ -352,6 +356,8 @@ body{
                     if (activeField === 'y') updateFromY(nextStr);
                     if (activeField === 'x') updateFromX(nextStr);
                     if (activeField === 'c') updateFromC(nextStr);
+                    if (activeField === 'a') updateFromA(nextStr);
+                    if (activeField === 'b') updateFromB(nextStr);
                 }
             };
 
@@ -385,7 +391,7 @@ body{
             const updateFromY = (v) => {
                 const cl = unformat(v); setY(cl); const n = parseFloat(cl);
                 if (!isNaN(n)) {
-                    setX(((Math.atan(n / 100) * 180) / Math.PI).toFixed(2));
+                    setX(((Math.atan(n / 100) * 180) / Math.PI).toFixed(1));
                     if (toNum(c) !== 0) {
                         setA(Math.round((n / 100) * toNum(c)).toString());
                         setB(Math.round(Math.sqrt(Math.pow((n / 100) * toNum(c), 2) + Math.pow(toNum(c), 2))).toString());
@@ -396,7 +402,7 @@ body{
                 const cl = unformat(v); setX(cl); const n = parseFloat(cl);
                 if (!isNaN(n)) {
                     const g = 100 * Math.tan((n * Math.PI) / 180);
-                    setY(g.toFixed(2));
+                    setY(g.toFixed(1));
                     if (toNum(c) !== 0) {
                         setA(Math.round((g / 100) * toNum(c)).toString());
                         setB(Math.round(Math.sqrt(Math.pow((g / 100) * toNum(c), 2) + Math.pow(c, 2))).toString());
@@ -408,6 +414,29 @@ body{
                 if (nC !== 0 && !isNaN(nY)) {
                     setA(Math.round((nY / 100) * nC).toString());
                     setB(Math.round(Math.sqrt(Math.pow((nY / 100) * nC, 2) + Math.pow(nC, 2))).toString());
+                }
+            };
+            
+            // 勾配幅(a)から逆算（水平寸法cは基準として維持）
+            const updateFromA = (v) => {
+                const cl = unformat(v); setA(cl); const nA = parseFloat(cl); const nC = toNum(c);
+                if (!isNaN(nA) && nC !== 0) {
+                    const newY = (nA / nC) * 100;
+                    setY(newY.toFixed(1));
+                    setX(((Math.atan(newY / 100) * 180) / Math.PI).toFixed(1));
+                    setB(Math.round(Math.sqrt(Math.pow(nA, 2) + Math.pow(nC, 2))).toString());
+                }
+            };
+
+            // 斜辺(b)から逆算（水平寸法cは基準として維持）
+            const updateFromB = (v) => {
+                const cl = unformat(v); setB(cl); const nB = parseFloat(cl); const nC = toNum(c);
+                if (!isNaN(nB) && nC !== 0 && nB > nC) {
+                    const newA = Math.sqrt(Math.pow(nB, 2) - Math.pow(nC, 2));
+                    setA(Math.round(newA).toString());
+                    const newY = (newA / nC) * 100;
+                    setY(newY.toFixed(1));
+                    setX(((Math.atan(newY / 100) * 180) / Math.PI).toFixed(1));
                 }
             };
 
@@ -677,7 +706,7 @@ body{
                                 </div>
                                 <div className={`relative px-3 h-[3.5rem] border-b border-zinc-800 flex flex-col justify-center transition-all ${activeField === 'c' ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 z-10' : ''}`} onClick={() => setActiveField('c')}>
                                     <span className="label-ios">水平寸法</span>
-                                    <input type="text" inputMode="none" value={format(c)} onFocus={handleFocus} className="w-full h-full bg-transparent text-center text-[26px] text-white font-black outline-none font-mono pt-1" placeholder="水平の距離or長さ" />
+                                    <input type="text" inputMode="none" value={format(c)} onFocus={handleFocus} className="w-full h-full bg-transparent text-center text-[26px] text-orange-500 font-black outline-none font-mono pt-1" placeholder="水平の距離or長さ" />
                                     <span className="absolute right-3 top-1/2 mt-1 text-zinc-400 font-black text-[14px]">㎜</span>
                                 </div>
                                 <div className="grid grid-cols-4 bg-[#27272a] rounded-b-2xl overflow-hidden">
@@ -692,18 +721,24 @@ body{
                                 </div>
                             </div>
                             <section className="grid grid-cols-2 gap-2 mt-2 text-left">
-                                <div className="bg-zinc-900 py-1 px-3 rounded-2xl border-2 border-green-500 flex flex-col items-start shadow-lg text-left">
+                                <div 
+                                    onClick={() => setActiveField('a')}
+                                    className={`py-1 px-3 rounded-2xl border-2 flex flex-col items-start shadow-lg text-left transition-all cursor-pointer ${activeField === 'a' ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 border-orange-500 z-10' : 'bg-zinc-900 border-green-500'}`}
+                                >
                                     <span className="text-[13px] font-bold text-zinc-300 uppercase block mt-1 leading-none">勾配幅</span>
-                                    <div className="flex items-baseline gap-1 mt-0.5">
-                                        <span className="text-[28px] font-mono font-black text-green-500">{format(a) || '0'}</span>
-                                        <span className="text-[14px] font-bold text-zinc-400">㎜</span>
+                                    <div className="flex items-baseline gap-1 mt-0.5 w-full">
+                                        <span className="text-[28px] font-mono font-black text-green-500 truncate w-full">{a !== '' ? format(a) : '0'}</span>
+                                        <span className="text-[14px] font-bold text-zinc-400 shrink-0">㎜</span>
                                     </div>
                                 </div>
-                                <div className="bg-zinc-900 py-1 px-3 rounded-2xl border-2 border-blue-500 flex flex-col items-start shadow-lg text-left">
+                                <div 
+                                    onClick={() => setActiveField('b')}
+                                    className={`py-1 px-3 rounded-2xl border-2 flex flex-col items-start shadow-lg text-left transition-all cursor-pointer ${activeField === 'b' ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 border-orange-500 z-10' : 'bg-zinc-900 border-blue-500'}`}
+                                >
                                     <span className="text-[13px] font-bold text-zinc-300 uppercase block mt-1 leading-none">斜辺</span>
-                                    <div className="flex items-baseline gap-1 mt-0.5">
-                                        <span className="text-[28px] font-mono font-black text-blue-500">{format(b) || '0'}</span>
-                                        <span className="text-[14px] font-bold text-zinc-400">㎜</span>
+                                    <div className="flex items-baseline gap-1 mt-0.5 w-full">
+                                        <span className="text-[28px] font-mono font-black text-blue-500 truncate w-full">{b !== '' ? format(b) : '0'}</span>
+                                        <span className="text-[14px] font-bold text-zinc-400 shrink-0">㎜</span>
                                     </div>
                                 </div>
                             </section>
@@ -744,7 +779,7 @@ body{
 
 <button id="installBtn" aria-label="インストール">インストール</button>
 <script>
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.protocol === 'http:')) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(console.error);
   });
