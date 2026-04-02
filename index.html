@@ -461,7 +461,7 @@ body{
                     {activeTab === 'material' ? (
                         <div className="flex flex-col animate-fade-in">
                             <div 
-                                className={`bg-zinc-900 rounded-2xl overflow-hidden border border-[#c0c0c0] shadow-xl mb-3 relative px-3 h-12 flex flex-col justify-center transition-all ${activeField === 'name' ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 z-10' : ''}`}
+                                className={`bg-zinc-900 rounded-2xl overflow-hidden border border-[#c0c0c0] shadow-xl mb-3 relative px-3 h-[50px] flex flex-col justify-center transition-all ${activeField === 'name' ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 z-10' : ''}`}
                                 onClick={() => setActiveField('name')}
                             >
                                 <span className="label-ios">品名</span>
@@ -470,7 +470,7 @@ body{
 
                             <div className="bg-zinc-900 rounded-2xl overflow-visible border-2 border-zinc-800 shadow-xl space-y-0">
                                 <div className="flex border-b border-zinc-800 relative overflow-visible">
-                                    <div className={`relative flex-1 h-12 border-r border-zinc-800 flex flex-col justify-center transition-all ${(activeField === 'stdLength' || openDropdown === 'length') ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 z-[40]' : 'z-0'}`} onClick={() => setActiveField('stdLength')}>
+                                    <div className={`relative flex-1 h-[50px] border-r border-zinc-800 flex flex-col justify-center transition-all ${(activeField === 'stdLength' || openDropdown === 'length') ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 z-[40]' : 'z-0'}`} onClick={() => setActiveField('stdLength')}>
                                         <input type="text" inputMode="none" value={format(stdLength)} onFocus={handleFocus} className="placeholder-silver w-full h-full bg-transparent text-center text-[20px] text-white font-bold outline-none font-mono" placeholder="材料の長さ" />
                                         <button onClick={(e) => { e.stopPropagation(); setOpenDropdown(openDropdown === 'length' ? null : 'length'); }} className={`absolute right-1 top-0 bottom-0 w-8 flex items-center justify-center text-zinc-500 ${openDropdown === 'length' ? 'rotate-180 text-orange-500' : ''}`}>
                                             <Icon name="chevron" size={20} />
@@ -485,7 +485,7 @@ body{
                                             </div>
                                         )}
                                     </div>
-                                    <div className={`relative flex-1 h-12 flex flex-col justify-center transition-all ${(activeField === 'overlap' || openDropdown === 'overlap') ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 z-[40]' : 'z-0'}`} onClick={() => setActiveField('overlap')}>
+                                    <div className={`relative flex-1 h-[50px] flex flex-col justify-center transition-all ${(activeField === 'overlap' || openDropdown === 'overlap') ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 z-[40]' : 'z-0'}`} onClick={() => setActiveField('overlap')}>
                                         <input type="text" inputMode="none" value={format(overlap)} onFocus={handleFocus} className="placeholder-silver w-full h-full bg-transparent text-center text-[20px] text-white font-bold outline-none font-mono" placeholder="ジョイント" />
                                         <button onClick={(e) => { e.stopPropagation(); setOpenDropdown(openDropdown === 'overlap' ? null : 'overlap'); }} className={`absolute right-1 top-0 bottom-0 w-8 flex items-center justify-center text-zinc-500 ${openDropdown === 'overlap' ? 'rotate-180 text-orange-500' : ''}`}>
                                             <Icon name="chevron" size={20} />
@@ -503,14 +503,14 @@ body{
                                 </div>
 
                                 <div className="flex items-center border-b border-zinc-800">
-                                    <div className={`relative flex-1 px-3 h-[3.2rem] flex flex-col justify-center transition-all ${activeField === 'addInput' ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 z-10' : ''}`} onClick={() => setActiveField('addInput')}>
+                                    <div className={`relative flex-1 px-3 h-[50px] flex flex-col justify-center transition-all ${activeField === 'addInput' ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 z-10' : ''}`} onClick={() => setActiveField('addInput')}>
                                         <span className="label-ios">+加算</span>
                                         <input ref={addInputRef} type="text" inputMode="none" value={format(addInput)} onFocus={handleFocus} className="w-full h-full bg-transparent text-center text-[22px] text-[#c0c0c0] font-bold outline-none font-mono" placeholder="数値入力" />
                                     </div>
                                 </div>
 
                                 <div className="flex items-center border-b border-zinc-800">
-                                    <div className={`relative flex-1 px-3 h-[3.5rem] flex flex-col justify-center transition-all ${activeField === 'totalDim' ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 z-10' : ''}`} onClick={() => setActiveField('totalDim')}>
+                                    <div className={`relative flex-1 px-3 h-[50px] flex flex-col justify-center transition-all ${activeField === 'totalDim' ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 z-10' : ''}`} onClick={() => setActiveField('totalDim')}>
                                         <span className="label-ios">全幅</span>
                                         <input type="text" inputMode="none" value={format(totalDim)} onFocus={handleFocus} className="w-full h-full bg-transparent text-center text-[26px] text-white font-black outline-none font-mono" placeholder="取り付け全長" />
                                     </div>
@@ -698,14 +698,14 @@ body{
                         <div className="flex flex-col gap-3 animate-fade-in text-left">
                             <div className="bg-zinc-900 rounded-2xl overflow-visible border-2 border-zinc-800 shadow-xl text-left">
                                 <div className="flex border-b border-zinc-800 relative">
-                                    <div className={`relative flex-1 h-12 border-r border-zinc-800 flex flex-col justify-center transition-all ${activeField === 'y' ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 z-10' : ''}`} onClick={() => setActiveField('y')}>
+                                    <div className={`relative flex-1 h-[50px] border-r border-zinc-800 flex flex-col justify-center transition-all ${activeField === 'y' ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 z-10' : ''}`} onClick={() => setActiveField('y')}>
                                         <input type="text" inputMode="none" value={y} onFocus={handleFocus} className="placeholder-silver w-full h-full bg-transparent text-center text-[20px] text-white font-bold outline-none font-mono" placeholder="勾配(100→↕︎)" />
                                     </div>
-                                    <div className={`relative flex-1 h-12 flex flex-col justify-center transition-all ${activeField === 'x' ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 z-10' : ''}`} onClick={() => setActiveField('x')}>
+                                    <div className={`relative flex-1 h-[50px] flex flex-col justify-center transition-all ${activeField === 'x' ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 z-10' : ''}`} onClick={() => setActiveField('x')}>
                                         <input type="text" inputMode="none" value={x} onFocus={handleFocus} className="placeholder-silver w-full h-full bg-transparent text-center text-[20px] text-white font-bold outline-none font-mono" placeholder="角度" />
                                     </div>
                                 </div>
-                                <div className={`relative px-3 h-[3.5rem] border-b border-zinc-800 flex flex-col justify-center transition-all ${activeField === 'c' ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 z-10' : ''}`} onClick={() => setActiveField('c')}>
+                                <div className={`relative px-3 h-[50px] border-b border-zinc-800 flex flex-col justify-center transition-all ${activeField === 'c' ? 'bg-zinc-800 ring-2 ring-inset ring-orange-500 z-10' : ''}`} onClick={() => setActiveField('c')}>
                                     <span className="label-ios">水平寸法</span>
                                     <input type="text" inputMode="none" value={format(c)} onFocus={handleFocus} className="w-full h-full bg-transparent text-center text-[26px] text-white font-black outline-none font-mono pt-1" placeholder="水平の距離or長さ" />
                                     <span className="absolute right-3 top-1/2 mt-1 text-zinc-400 font-black text-[14px]">㎜</span>
