@@ -504,20 +504,50 @@ body{
 
             const saveHistoryTotal = () => {
                 if (history.length === 0) return;
-                const pieces = history.reduce((acc, cur) => acc + (cur.pieces || 0), 0);
-                const totalDistance = history.reduce((acc, cur) => acc + toNum(cur.total), 0);
-                const totalRemainder = history.reduce((acc, cur) => acc + (toNum(cur.remainder) || 0), 0); 
-                const newTallies = [{
-                    id: Date.now().toString(),
-                    name: currentProductName || '名称未設定',
-                    pieces,
-                    totalDistance,
-                    totalRemainder,
-                    details: [...history], 
-                    createdAt: Date.now()
-                }, ...savedTallies];
-                setSavedTallies(newTallies);
-                localStorage.setItem('trim_calc_tallies_v15', JSON.stringify(newTallies));
+
+                // 既存のsavedTallies（種類別集計）をコピーして処理
+                let updatedTallies = [...savedTallies];
+
+                // 履歴内の各アイテムを品名別に集計して登録
+                history.forEach(item => {
+                    const name = item.name || '名称未設定';
+                    
+                    // 種類別集計の中に、すでに同じ品名があるか探す
+                    const existingTallyIdx = updatedTallies.findIndex(t => t.name === name);
+
+                    if (existingTallyIdx > -1) {
+                        // 【既存あり】 すでに同じ品名が存在する場合は合算
+                        updatedTallies[existingTallyIdx] = {
+                            ...updatedTallies[existingTallyIdx],
+                            pieces: updatedTallies[existingTallyIdx].pieces + (item.pieces || 0),
+                            totalDistance: updatedTallies[existingTallyIdx].totalDistance + toNum(item.total),
+                            totalRemainder: updatedTallies[existingTallyIdx].totalRemainder + (toNum(item.remainder) || 0),
+                            // 内訳詳細（details）の先頭に、この履歴アイテムを追加
+                            details: [item, ...(updatedTallies[existingTallyIdx].details || [])],
+                            // 更新日時を最新に更新
+                            createdAt: Date.now()
+                        };
+                    } else {
+                        // 【新規】 まだその品名の登録がない場合は、新規に作成
+                        updatedTallies.unshift({
+                            id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
+                            name: name,
+                            pieces: item.pieces || 0,
+                            totalDistance: toNum(item.total),
+                            totalRemainder: toNum(item.remainder) || 0,
+                            details: [item],
+                            createdAt: Date.now()
+                        });
+                    }
+                });
+
+                // 最新の更新が行われたものを一番上（降順）にソートして並び替える
+                updatedTallies.sort((a, b) => b.createdAt - a.createdAt);
+
+                setSavedTallies(updatedTallies);
+                localStorage.setItem('trim_calc_tallies_v15', JSON.stringify(updatedTallies));
+                
+                // 履歴（history）の初期化
                 setHistory([]);
                 localStorage.removeItem('trim_calc_history_v15');
                 setCurrentProductName('');
@@ -551,7 +581,7 @@ body{
                         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
                             <div className="bg-zinc-900 border border-zinc-700 rounded-3xl p-6 w-full max-sm shadow-2xl animate-fade-in text-center">
                                 <h3 className="text-xl font-bold text-white mb-2">履歴の全削除</h3>
-                                <p className="text-[14px] text-zinc-400 mb-6">保存履歴をすべて削除します。<br/>本当によろしいですか？</p>
+                                <p className="text-[14px] text-zinc-400 mb-6">保存履歴をすべて削除します。<br/>本当によろしいですか?</p>
                                 <div className="flex gap-3">
                                     <button onClick={() => setIsClearModalOpen(false)} className="flex-1 py-3 rounded-xl font-bold btn-3d btn-3d-zinc text-white">キャンセル</button>
                                     <button onClick={confirmClearHistory} className="flex-1 py-3 rounded-xl font-bold btn-3d btn-3d-red text-white">削除する</button>
