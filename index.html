@@ -273,7 +273,7 @@ body{
                     if (isNaN(n) || cleanVal === '') { setY(''); return; }
                     const nY = 100 * Math.tan((n * Math.PI) / 180);
                     setY(formatSlopeValue(nY));
-                    updateOtherSlopeFields('y', nY); // yが求まったのでyを起点にする
+                    updateOtherSlopeFields('y', nY);
                 } else if (field === 'c') {
                     setC(cleanVal);
                     const n = parseFloat(cleanVal);
@@ -302,7 +302,6 @@ body{
                 const hasLockedC = (changedField === 'c') ? true : c !== '';
 
                 if (hasLockedC) {
-                    // 勾配 or 水平寸法の変更時は、勾配幅(a)と斜辺(b)だけを更新
                     if ((changedField === 'y' || changedField === 'c') && !isNaN(currentY)) {
                         const nextA = currentC * (currentY / 100);
                         const nextB = Math.sqrt(currentC**2 + nextA**2);
@@ -311,7 +310,6 @@ body{
                         return;
                     }
 
-                    // 勾配幅(a)入力時は、水平寸法(c)を固定したまま勾配と斜辺を更新
                     if (changedField === 'a') {
                         if (currentC !== 0 && !isNaN(currentA)) {
                             const calcY = (currentA / currentC) * 100;
@@ -324,8 +322,6 @@ body{
                         return;
                     }
 
-                    // 斜辺(b)入力時は、水平寸法(c)を固定したまま勾配幅・勾配を更新
-                    // ここで return しないと、下の逆算ロジックに落ちて c が壊れる
                     if (changedField === 'b') {
                         if (!isNaN(currentB) && currentB >= currentC) {
                             const calcA = Math.sqrt(Math.max(0, currentB**2 - currentC**2));
@@ -334,7 +330,6 @@ body{
                             setY(formatSlopeValue(calcY));
                             setX(formatAngleValue((Math.atan(calcY / 100) * 180) / Math.PI));
                         } else {
-                            // 斜辺 < 水平寸法 は成立しないため、c は固定のまま他だけクリア
                             setA('');
                             setY('');
                             setX('');
@@ -343,7 +338,6 @@ body{
                     }
                 }
 
-                // c が未入力のときだけ、従来どおり逆算を許可
                 if (y !== '' || changedField === 'y') {
                     const calcY = currentY;
                     if (changedField === 'a') {
@@ -506,33 +500,27 @@ body{
             const saveHistoryTotal = () => {
                 if (history.length === 0) return;
 
-                // 既存のsavedTallies（種類別集計）をコピーして処理
                 let updatedTallies = [...savedTallies];
 
-                // 履歴内の各アイテムを品名別に集計して登録
                 history.forEach(item => {
                     const name = item.name || '名称未設定';
-                    
-                    // 種類別集計の中に、すでに同じ品名があるか探す
                     const existingTallyIdx = updatedTallies.findIndex(t => t.name === name);
 
                     if (existingTallyIdx > -1) {
-                        // 【既存あり】 すでに同じ品名が存在する場合は合算
                         updatedTallies[existingTallyIdx] = {
                             ...updatedTallies[existingTallyIdx],
+                            std: updatedTallies[existingTallyIdx].std || item.std,
                             pieces: updatedTallies[existingTallyIdx].pieces + (item.pieces || 0),
                             totalDistance: updatedTallies[existingTallyIdx].totalDistance + toNum(item.total),
                             totalRemainder: updatedTallies[existingTallyIdx].totalRemainder + (toNum(item.remainder) || 0),
-                            // 内訳詳細（details）の先頭に、この履歴アイテムを追加
                             details: [item, ...(updatedTallies[existingTallyIdx].details || [])],
-                            // 更新日時を最新に更新
                             createdAt: Date.now()
                         };
                     } else {
-                        // 【新規】 まだその品名の登録がない場合は、新規に作成
                         updatedTallies.unshift({
                             id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
                             name: name,
+                            std: item.std,
                             pieces: item.pieces || 0,
                             totalDistance: toNum(item.total),
                             totalRemainder: toNum(item.remainder) || 0,
@@ -542,13 +530,11 @@ body{
                     }
                 });
 
-                // 最新の更新が行われたものを一番上（降順）にソートして並び替える
                 updatedTallies.sort((a, b) => b.createdAt - a.createdAt);
 
                 setSavedTallies(updatedTallies);
                 localStorage.setItem('trim_calc_tallies_v15', JSON.stringify(updatedTallies));
                 
-                // 履歴（history）の初期化
                 setHistory([]);
                 localStorage.removeItem('trim_calc_history_v15');
                 setCurrentProductName('');
@@ -680,7 +666,6 @@ body{
                                     </div>
                                 </div>
 
-                                {/* セパレーター */}
                                 <div className="h-2 bg-[#09090b] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] border-t border-[#000]"></div>
 
                                 <div className="grid grid-cols-4 bg-[#27272a] rounded-b-2xl overflow-hidden">
@@ -707,7 +692,6 @@ body{
                                 </div>
                             </div>
                             
-                            {/* 独立させた保存ボタン */}
                             <button onClick={() => handleKeypad('保存')} className="w-full mt-3 py-2.5 rounded-2xl font-bold text-[17px] btn-3d btn-3d-orange-ios text-white shadow-xl flex items-center justify-center gap-2">
                                 <Icon name="save" size={20} />
                                 保存する
@@ -768,15 +752,22 @@ body{
                                 <div className="space-y-1.5 overflow-y-auto max-h-[30vh]">
                                     {history.map(item => (
                                         <div key={item.id} className="bg-zinc-900 border border-zinc-800 rounded-xl flex items-center shadow-sm p-2 overflow-hidden">
-                                            <div className="flex-1 flex flex-col gap-0.5 min-w-0">
+                                            <div className="flex-1 flex flex-col gap-1 min-w-0">
                                                 <div className="flex items-center justify-between px-1">
-                                                    <span className="text-[14px] font-black text-zinc-300 truncate max-w-[160px] uppercase leading-tight">{item.name || '名称未設定'}</span>
-                                                    <span className="text-[14px] text-zinc-600 font-mono self-start mt-1">{new Date(item.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <span className="text-[14px] font-black text-zinc-300 truncate max-w-[140px] uppercase leading-tight">{item.name || '名称未設定'}</span>
+                                                        {item.std && (
+                                                            <span className="text-[11px] font-bold text-orange-400 bg-orange-950/60 border border-orange-500/40 px-1.5 py-0.5 rounded font-mono shrink-0">
+                                                                L:{format(item.std)}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <span className="text-[13px] text-zinc-500 font-mono self-start mt-0.5">{new Date(item.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                                                 </div>
                                                 <div className="flex items-baseline gap-3 px-1">
                                                     <span className="text-zinc-200 font-mono text-sm whitespace-nowrap">{format(item.total)} mm</span>
                                                     <span className="text-green-500 font-black text-sm whitespace-nowrap">{item.pieces}本</span>
-                                                    <span className="text-blue-500 font-black text-sm whitespace-nowrap">{format(item.remainder)} mm</span>
+                                                    <span className="text-blue-500 font-black text-sm whitespace-nowrap">端:{format(item.remainder)} mm</span>
                                                 </div>
                                             </div>
                                             <button onClick={() => deleteHistoryItem(item.id)} className="w-10 shrink-0 flex items-center justify-center text-zinc-600 active:text-red-500"><Icon name="trash" size={16} /></button>
@@ -818,11 +809,22 @@ body{
                                             >
                                                 <div className="flex-1 py-3 px-4 flex flex-col gap-2 text-left">
                                                     <div className="flex items-center justify-between mb-0.5">
-                                                        <span className="text-[14px] font-black text-zinc-100 truncate max-w-[180px] uppercase leading-tight">{t.name}</span>
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <span className="text-[14px] font-black text-zinc-100 truncate max-w-[150px] uppercase leading-tight">{t.name}</span>
+                                                            {(t.std || (t.details && t.details[0] && t.details[0].std)) && (
+                                                                <span className="text-[11px] font-bold text-orange-400 bg-orange-950/60 border border-orange-500/40 px-1.5 py-0.5 rounded font-mono shrink-0">
+                                                                    L:{format(t.std || t.details[0].std)}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <Icon name="chevron" size={18} className={`text-zinc-500 transition-transform ${expandedTallyId === t.id ? 'rotate-180 text-orange-500' : ''}`} />
                                                     </div>
                                                     <div className="flex flex-col gap-1.5 text-left bg-zinc-950/50 p-2 rounded-xl border border-zinc-800/50">
                                                         <div className="flex items-baseline justify-between px-1">
+                                                            <span className="text-zinc-400 text-[14px] font-bold uppercase tracking-tighter">材料の長さ:</span>
+                                                            <span className="text-orange-400 text-[14px] font-mono font-bold">{format(t.std || (t.details && t.details[0] && t.details[0].std) || '-')} mm</span>
+                                                        </div>
+                                                        <div className="flex items-baseline justify-between px-1 border-t border-zinc-800/30 pt-1.5">
                                                             <span className="text-zinc-400 text-[14px] font-bold uppercase tracking-tighter">総距離:</span>
                                                             <span className="text-zinc-200 text-[14px] font-mono font-bold">{format(t.totalDistance)} mm</span>
                                                         </div>
@@ -847,13 +849,19 @@ body{
                                                 }} className="w-12 shrink-0 bg-zinc-900/50 hover:bg-zinc-800 text-zinc-600 active:text-red-500 flex items-center justify-center border-l border-zinc-800 transition-colors"><Icon name="trash" size={18} /></button>
                                             </div>
                                             
-                                            {/* 詳細履歴の展開表示 */}
                                             {expandedTallyId === t.id && t.details && (
                                                 <div className="mx-2 p-2 bg-zinc-950/80 rounded-b-xl border-x border-b border-orange-500/30 space-y-1 animate-fade-in">
                                                     <div className="text-[14px] font-black text-zinc-500 px-2 pb-1 uppercase border-b border-zinc-800 mb-1">内訳詳細</div>
                                                     {t.details.map((detail, idx) => (
                                                         <div key={detail.id || idx} className="flex items-center justify-between px-2 py-2 border-b border-zinc-900/50 last:border-none">
-                                                            <span className="text-zinc-300 font-mono text-[14px]">{format(detail.total)} mm</span>
+                                                            <div className="flex items-baseline gap-2">
+                                                                <span className="text-zinc-300 font-mono text-[14px]">{format(detail.total)} mm</span>
+                                                                {detail.std && (
+                                                                    <span className="text-[11px] font-bold text-orange-400/90 font-mono">
+                                                                        (L:{format(detail.std)})
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                             <div className="flex gap-4">
                                                                 <span className="text-green-500 font-black text-[14px]">{detail.pieces}本</span>
                                                                 <span className="text-blue-500 font-black text-[14px]">{format(detail.remainder)} mm</span>
@@ -884,7 +892,6 @@ body{
                                     <span className="absolute right-3 top-1/2 mt-1 text-zinc-400 font-black text-[14px]">㎜</span>
                                 </div>
                                 
-                                {/* セパレーター */}
                                 <div className="h-2 bg-[#09090b] shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] border-t border-[#000]"></div>
 
                                 <div className="grid grid-cols-4 bg-[#27272a] rounded-b-2xl overflow-hidden">
