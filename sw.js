@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yakumono-complete-v6';
+const CACHE_NAME = 'yakumono-complete-v7';
 const APP_SHELL = [
   './',
   './index.html',
