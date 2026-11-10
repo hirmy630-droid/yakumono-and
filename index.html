@@ -148,8 +148,8 @@ body{
             const [isNewEntry, setIsNewEntry] = useState(true);
             const [expandedTallyId, setExpandedTallyId] = useState(null);
 
-            const [currentProductName, setCurrentProductName] = useState('');
-            const [stdLength, setStdLength] = useState(() => localStorage.getItem('trim_calc_stdLength_v15') || '');
+            const [currentProductName, setCurrentProductName] = useState('No.1');
+            const [stdLength, setStdLength] = useState(() => localStorage.getItem('trim_calc_stdLength_v15') || '3000');
             const [overlap, setOverlap] = useState(() => localStorage.getItem('trim_calc_overlap_v15') || '50');
             const [totalDim, setTotalDim] = useState('');
             const [addInput, setAddInput] = useState('');
@@ -225,9 +225,10 @@ body{
 
             const saveToHistoryManually = () => {
                 if (materialResult.pieces === 0 || stdLength === '') return;
+                const name = (currentProductName || '').trim() || 'No.1';
                 const newItem = {
                     id: Date.now().toString(),
-                    name: currentProductName || '名称未設定',
+                    name: name,
                     total: totalDim,
                     std: stdLength,
                     overlap: overlap,
@@ -235,21 +236,53 @@ body{
                     remainder: materialResult.remainder,
                     createdAt: Date.now()
                 };
+
+                // 直接「集計（savedTallies）」に品名別に保存・合算
+                let updatedTallies = [...savedTallies];
+                const existingTallyIdx = updatedTallies.findIndex(t => t.name === name);
+
+                if (existingTallyIdx > -1) {
+                    updatedTallies[existingTallyIdx] = {
+                        ...updatedTallies[existingTallyIdx],
+                        std: updatedTallies[existingTallyIdx].std || newItem.std,
+                        pieces: updatedTallies[existingTallyIdx].pieces + (newItem.pieces || 0),
+                        totalDistance: updatedTallies[existingTallyIdx].totalDistance + toNum(newItem.total),
+                        totalRemainder: updatedTallies[existingTallyIdx].totalRemainder + (toNum(newItem.remainder) || 0),
+                        details: [newItem, ...(updatedTallies[existingTallyIdx].details || [])],
+                        createdAt: Date.now()
+                    };
+                } else {
+                    updatedTallies.unshift({
+                        id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
+                        name: name,
+                        std: newItem.std,
+                        pieces: newItem.pieces || 0,
+                        totalDistance: toNum(newItem.total),
+                        totalRemainder: toNum(newItem.remainder) || 0,
+                        details: [newItem],
+                        createdAt: Date.now()
+                    });
+                }
+
+                updatedTallies.sort((a, b) => b.createdAt - a.createdAt);
+                setSavedTallies(updatedTallies);
+                localStorage.setItem('trim_calc_tallies_v15', JSON.stringify(updatedTallies));
+
+                // 履歴一覧にも保持
                 let newHistory = [newItem, ...history].slice(0, 50);
                 setHistory(newHistory);
                 localStorage.setItem('trim_calc_history_v15', JSON.stringify(newHistory));
+
+                // 取り付け全長(totalDim)の値は残し、加算値のみクリア
+                setAddInput('');
+                setIsNewEntry(true);
+                setActiveField('totalDim');
             };
 
             const deleteHistoryItem = (id) => {
                 const newHistory = history.filter(item => item.id !== id);
                 setHistory(newHistory);
                 localStorage.setItem('trim_calc_history_v15', JSON.stringify(newHistory));
-            };
-
-            const updateTallyName = (id, newName) => {
-                const updated = savedTallies.map(t => t.id === id ? { ...t, name: newName } : t);
-                setSavedTallies(updated);
-                localStorage.setItem('trim_calc_tallies_v15', JSON.stringify(updated));
             };
 
             const formatSlopeValue = (num) => {
@@ -303,7 +336,6 @@ body{
                 const currentA = changedField === 'a' ? changedValue : toNum(a);
                 const currentB = changedField === 'b' ? changedValue : toNum(b);
 
-                // 水平寸法(c)が入っている時は c を基準に固定し、c は自動で書き換えない
                 const hasLockedC = (changedField === 'c') ? true : c !== '';
 
                 if (hasLockedC) {
@@ -379,7 +411,7 @@ body{
                 if (key === 'AC') {
                     if (activeTab === 'material') {
                         clearAllFields();
-                        setCurrentProductName('');
+                        setCurrentProductName('No.1');
                     } else if (activeTab === 'slope') {
                         setY(''); setX(''); setC(''); setA(''); setB('');
                     }
@@ -500,49 +532,6 @@ body{
                     setIsNewEntry(false);
                     handleSlopeChange(activeField, nextStr);
                 }
-            };
-
-            const saveHistoryTotal = () => {
-                if (history.length === 0) return;
-
-                let updatedTallies = [...savedTallies];
-
-                history.forEach(item => {
-                    const name = item.name || '名称未設定';
-                    const existingTallyIdx = updatedTallies.findIndex(t => t.name === name);
-
-                    if (existingTallyIdx > -1) {
-                        updatedTallies[existingTallyIdx] = {
-                            ...updatedTallies[existingTallyIdx],
-                            std: updatedTallies[existingTallyIdx].std || item.std,
-                            pieces: updatedTallies[existingTallyIdx].pieces + (item.pieces || 0),
-                            totalDistance: updatedTallies[existingTallyIdx].totalDistance + toNum(item.total),
-                            totalRemainder: updatedTallies[existingTallyIdx].totalRemainder + (toNum(item.remainder) || 0),
-                            details: [item, ...(updatedTallies[existingTallyIdx].details || [])],
-                            createdAt: Date.now()
-                        };
-                    } else {
-                        updatedTallies.unshift({
-                            id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
-                            name: name,
-                            std: item.std,
-                            pieces: item.pieces || 0,
-                            totalDistance: toNum(item.total),
-                            totalRemainder: toNum(item.remainder) || 0,
-                            details: [item],
-                            createdAt: Date.now()
-                        });
-                    }
-                });
-
-                updatedTallies.sort((a, b) => b.createdAt - a.createdAt);
-
-                setSavedTallies(updatedTallies);
-                localStorage.setItem('trim_calc_tallies_v15', JSON.stringify(updatedTallies));
-                
-                setHistory([]);
-                localStorage.removeItem('trim_calc_history_v15');
-                setCurrentProductName('');
             };
 
             const confirmClearHistory = () => {
@@ -723,35 +712,7 @@ body{
                                 <div className="flex items-center justify-between ml-1">
                                     <h3 className="text-[14px] font-bold text-zinc-300 uppercase">保存履歴</h3>
                                     <div className="flex items-center gap-1.5 shrink-0">
-                                        <button onClick={saveHistoryTotal} className="h-8 px-3 rounded-lg text-[14px] font-black flex items-center gap-1 btn-3d-orange-ios text-white whitespace-nowrap transition-all"><Icon name="save" size={16} />集計保存</button>
                                         <button onClick={() => setIsClearModalOpen(true)} className="h-8 w-10 flex items-center justify-center rounded-lg btn-3d btn-3d-zinc text-zinc-300 active:text-red-500"><Icon name="trash" size={18} /></button>
-                                    </div>
-                                </div>
-                                <div className="bg-zinc-900 py-2 px-3 rounded-2xl border border-orange-500 shadow-md">
-                                    <div className="flex flex-col gap-1 text-left">
-                                        {history.length > 0 && (
-                                            <div className="flex items-baseline justify-between px-1 border-b border-zinc-800 pb-1 mb-1">
-                                                <span className="text-zinc-400 text-[14px] font-black uppercase tracking-tighter">最新品名:</span>
-                                                <span className="text-zinc-100 text-[14px] font-black truncate max-w-[180px]">{history[0].name}</span>
-                                            </div>
-                                        )}
-                                        <div className="flex items-baseline justify-between px-1">
-                                            <span className="text-zinc-400 text-[14px] font-bold uppercase tracking-tighter">総距離:</span>
-                                            <span className="text-zinc-200 text-[14px] font-bold">{format(history.reduce((a,c)=>a+toNum(c.total),0))} mm</span>
-                                        </div>
-                                        <div className="flex items-center justify-between px-1">
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-zinc-400 text-[14px] font-bold uppercase tracking-tighter">総本数:</span>
-                                                <div className="flex items-baseline gap-1">
-                                                    <span className="text-xl font-mono font-black text-green-500 leading-none">{history.reduce((a,c)=>a+(c.pieces||0),0)}</span>
-                                                    <span className="text-[14px] font-bold text-zinc-300">本</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-baseline gap-1.5">
-                                                <span className="text-zinc-400 text-[14px] font-bold uppercase tracking-tighter">総端材:</span>
-                                                <span className="text-blue-400 text-base font-mono font-bold">{format(history.reduce((a,c)=>a+(toNum(c.remainder)||0),0))} mm</span>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                                 <div className="space-y-1.5 overflow-y-auto max-h-[30vh]">
@@ -803,7 +764,7 @@ body{
                                 {savedTallies.length === 0 ? (
                                     <div className="bg-zinc-900/50 border border-dashed border-zinc-800 rounded-3xl py-12 flex flex-col items-center justify-center text-center">
                                         <Icon name="save" size={40} className="text-zinc-700 mb-3" />
-                                        <p className="text-zinc-500 text-[14px] font-bold">データがありません<br/><span className="text-[14px] font-normal">「材料」タブの集計保存から追加できます</span></p>
+                                        <p className="text-zinc-500 text-[14px] font-bold">集計データがありません<br/><span className="text-[14px] font-normal">「材料」タブの「保存する」を押すと自動集計されます</span></p>
                                     </div>
                                 ) : (
                                     savedTallies.map(t => (
@@ -975,7 +936,6 @@ body{
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
-
 
 <button id="installBtn" aria-label="インストール">インストール</button>
 <script>
